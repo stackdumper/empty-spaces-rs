@@ -1,0 +1,20 @@
+[package]
+name = "project-game"
+version = "0.1.0"
+authors = ["stackdumper <stackdumper@gmail.com>"]
+edition = "2018"
+
+[lib]
+name = "pg"
+path = "src/lib.rs"
+
+[[bin]]
+name = "pg"
+path = "src/bin.rs"
+
+[dependencies]
+minifb = "0.16"
+specs = "0.16"
+fps_clock = "2.0"
+rand = "0.7"
+image = "0.23"
