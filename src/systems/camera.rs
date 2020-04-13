@@ -12,8 +12,8 @@ impl<'a> System<'a> for Camera {
 
     fn run(&mut self, (mut camera, follow, position): Self::SystemData) {
         for (_follow, position) in (&follow, &position).join() {
-            camera.x = position.x;
-            camera.y = position.y;
+            camera.x = -position.x;
+            camera.y = -position.y;
         }
     }
 }

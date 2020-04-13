@@ -1,5 +1,5 @@
 use crate::{components, resources};
-use minifb::{KeyRepeat, Scale, Window, WindowOptions};
+use minifb::{Scale, Window, WindowOptions};
 use specs::prelude::*;
 
 pub struct Render {
@@ -7,6 +7,8 @@ pub struct Render {
     pub buffer: Vec<u32>,
     pub width: usize,
     pub height: usize,
+    pub half_width: usize,
+    pub half_height: usize,
 }
 
 impl Render {
@@ -14,6 +16,8 @@ impl Render {
         Self {
             width,
             height,
+            half_width: width / 2,
+            half_height: height / 2,
             buffer: vec![0; width * height],
             window: Window::new(
                 title,
@@ -57,16 +61,21 @@ impl<'a> System<'a> for Render {
         // todo: use quadtree to determine if entity is on the screen
         // note: rstar https://crates.io/crates/rstar
         for (pos, geom, tex) in (&position, &geometry, &texture).join() {
-            let texture = textures.textures.get(&tex.0).unwrap();
+            let rx = pos.x + camera.x + self.half_width as f32;
+            let ry = pos.y + camera.y + self.half_height as f32;
 
-            // for each pixel in geometry
-            for oy in geom.min_y..geom.max_y + 1 {
-                for ox in geom.min_x..geom.max_x + 1 {
-                    // offset
-                    let x = pos.x - camera.x + ox as f32 + (self.width / 2) as f32;
-                    let y = pos.y - camera.y + oy as f32 + (self.height / 2) as f32;
-                    // if contains, draw texture color
-                    if self.contains(x, y) {
+            // if self.contains(rx, ry) {
+            if self.containss(&rx, &ry, &geom) {
+                // if contains, draw texture color
+                let texture = textures.textures.get(&tex.0).unwrap();
+
+                // for each pixel in geometry
+                for oy in geom.min_y..geom.max_y + 1 {
+                    for ox in geom.min_x..geom.max_x + 1 {
+                        // offset
+                        let x = rx + ox as f32;
+                        let y = ry + oy as f32;
+
                         self.draw(x, y, texture.get(ox, oy))
                     }
                 }
@@ -97,11 +106,21 @@ impl Render {
         if color != 0x000000 {
             let offset = ((y as usize) * self.width) + x as usize;
 
-            self.buffer[offset] = color;
+            if offset < self.buffer.len() {
+                self.buffer[offset] = color;
+            }
         }
     }
 
     fn contains(&self, x: f32, y: f32) -> bool {
         x >= 0.0 && y >= 0.0 && x < self.width as f32 && y < self.height as f32
+    }
+
+    fn containss(&self, x: &f32, y: &f32, geom: &components::Geometry) -> bool {
+        return true
+            && x + (geom.min_x as f32) >= 0.0
+            && y + (geom.min_y as f32) >= 0.0
+            && x + (geom.max_x as f32) < self.width as f32
+            && y + (geom.max_y as f32) < self.height as f32;
     }
 }

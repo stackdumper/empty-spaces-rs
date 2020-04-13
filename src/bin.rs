@@ -1,4 +1,3 @@
-use fps_clock::FpsClock;
 use pg::{components, resources, systems};
 use specs::prelude::*;
 
@@ -15,7 +14,7 @@ fn main() {
     world.register::<components::Speed>();
 
     // insert resources
-    world.insert(resources::Clock { dt: 0.02 });
+    world.insert(resources::Clock::new(60));
     world.insert(resources::Signals::default());
     world.insert(resources::Keyboard::default());
     world.insert(resources::Camera { x: 0.0, y: 0.0 });
@@ -33,8 +32,8 @@ fn main() {
         .with(components::Speed { x: 30.0, y: 30.0 })
         .build();
 
-    for x in 0..128 {
-        for y in 0..128 {
+    for x in 0..1 {
+        for y in 0..1 {
             world
                 .create_entity()
                 .with(components::Position {
@@ -59,13 +58,10 @@ fn main() {
     // setup dispatcher
     dispatcher.setup(&mut world);
 
-    // create fps clock
-    let mut fps = FpsClock::new(60);
-
     // run game loop
     loop {
-        let signals = world.get_mut::<resources::Signals>().unwrap();
         // if closed, exit
+        let signals = world.get_mut::<resources::Signals>().unwrap();
         if signals.close {
             break;
         }
@@ -74,6 +70,6 @@ fn main() {
         dispatcher.dispatch(&mut world);
 
         // update clock, pause game loop
-        // world.get_mut::<resources::Clock>().unwrap().dt = fps.tick() / 1e9; // nanoseconds to seconds
+        world.get_mut::<resources::Clock>().unwrap().tick();
     }
 }

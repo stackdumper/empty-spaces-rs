@@ -11,6 +11,8 @@ impl<'a> System<'a> for Position {
     );
 
     fn run(&mut self, (mut pos, vel, clock): Self::SystemData) {
+        println!("{}", clock.dt);
+
         for (pos, vel) in (&mut pos, &vel).join() {
             pos.x += vel.x * clock.dt;
             pos.y += vel.y * clock.dt;

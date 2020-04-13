@@ -1,5 +1,3 @@
-use crate::components;
-
 #[derive(Default)]
 pub struct Camera {
     pub x: f32,
