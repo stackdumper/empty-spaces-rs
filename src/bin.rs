@@ -32,13 +32,13 @@ fn main() {
         .with(components::Speed { x: 30.0, y: 30.0 })
         .build();
 
-    for x in 0..1 {
-        for y in 0..1 {
+    for x in 0..32 {
+        for y in 0..32 {
             world
                 .create_entity()
                 .with(components::Position {
-                    x: (x * 8) as f32,
-                    y: (y * 8) as f32,
+                    x: (x * 16) as f32,
+                    y: (y * 16) as f32,
                 })
                 .with(components::Velocity { x: 0.0, y: 0.0 })
                 .with(components::Geometry::square(13, 13))
@@ -52,7 +52,7 @@ fn main() {
         .with(systems::Position, "position", &[])
         .with(systems::Camera, "camera", &[])
         .with(systems::Controls, "controls", &[])
-        .with_thread_local(systems::Render::new("project-rts", 1000, 800))
+        .with_thread_local(systems::Render::new("project-rts", 500, 400))
         .build();
 
     // setup dispatcher
