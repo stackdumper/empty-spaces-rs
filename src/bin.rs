@@ -1,5 +1,4 @@
 use pg::{components, resources, systems};
-use rand::Rng;
 use specs::prelude::*;
 
 fn main() {
@@ -21,9 +20,7 @@ fn main() {
     world.insert(resources::Camera { x: 0.0, y: 0.0 });
     world.insert(resources::Textures::new());
     world.insert(resources::Tree::default());
-
-    // insert entity
-    let mut rng = rand::thread_rng();
+    world.insert(resources::Map::default());
 
     world
         .create_entity()
@@ -35,38 +32,27 @@ fn main() {
         .with(components::Speed { x: 30.0, y: 30.0 })
         .build();
 
-    for x in 0..32 {
-        for y in 0..32 {
-            let position = components::Position {
-                x: (x * 256) as f32,
-                y: (y * 256) as f32,
-            };
-
-            let entity = world
-                .create_entity()
-                .with(position)
-                .with(components::Velocity { x: 0.0, y: 0.0 })
-                .with(components::Geometry::square(256, 256))
-                .with(components::Texture(4))
-                .build();
-
+    for x in 0..20 {
+        for y in 0..20 {
             world
-                .get_mut::<resources::Tree>()
-                .unwrap()
-                .tree
-                .insert(resources::TreeItem {
-                    0: Some(entity),
-                    1: position.x,
-                    2: position.y,
-                });
+                .create_entity()
+                .with(components::Position {
+                    x: (x * 32) as f32,
+                    y: (y * 32) as f32,
+                })
+                .with(components::Velocity { x: 0.0, y: 0.0 })
+                .with(components::Geometry::square(13, 13))
+                .with(components::Texture(6))
+                .build();
         }
     }
 
     // create dispatcher
     let mut dispatcher = DispatcherBuilder::new()
-        .with(systems::Position, "position", &[])
         .with(systems::Controls, "controls", &[])
         .with(systems::Camera, "camera", &["controls"])
+        .with(systems::Position, "position", &[])
+        .with(systems::Tree, "tree", &["position"])
         .with_thread_local(systems::Render::new("project-rts", 500, 400))
         .build_async(world);
 
@@ -81,6 +67,8 @@ fn main() {
 
         // get world
         let world = dispatcher.world_mut();
+
+        world.maintain();
 
         // update clock, pause game loop
         world.get_mut::<resources::Clock>().unwrap().tick();

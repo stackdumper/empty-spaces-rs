@@ -1,7 +1,7 @@
 use minifb::{Scale, Window, WindowOptions};
 
+mod utils;
 mod render;
-mod system;
 
 pub struct Render {
     pub window: Window,
