@@ -10,8 +10,12 @@ impl Textures {
     pub fn new() -> Self {
         let mut textures = HashMap::new();
 
-        textures.insert(0, Self::load("src/assets/commander.png"));
-        textures.insert(1, Self::load("src/assets/engineer.png"));
+        textures.insert(1, Self::load("src/assets/grass_1.png"));
+        textures.insert(2, Self::load("src/assets/grass_2.png"));
+        textures.insert(3, Self::load("src/assets/grass_3.png"));
+        textures.insert(4, Self::load("src/assets/grass_big.png"));
+        textures.insert(5, Self::load("src/assets/commander.png"));
+        textures.insert(6, Self::load("src/assets/engineer.png"));
 
         Self { textures }
     }
@@ -20,8 +24,8 @@ impl Textures {
         // open image
 
         let img = image::open(path).unwrap();
-        let width = img.width() as u8;
-        let height = img.height() as u8;
+        let width = img.width() as u16;
+        let height = img.height() as u16;
 
         // get array of u32 colors
         let mut colors = vec![0; width as usize * height as usize];
@@ -41,8 +45,8 @@ impl Textures {
 pub struct Texture {
     pub colors: Vec<u32>,
 
-    width: u8,
-    height: u8,
+    width: u16,
+    height: u16,
 }
 
 impl Texture {
@@ -62,10 +66,10 @@ impl Texture {
     //     }
     // }
 
-    pub fn get(&self, x: i8, y: i8) -> u32 {
+    pub fn get(&self, x: i16, y: i16) -> u32 {
         // relative positions
-        let rx = (x + (self.width / 2) as i8) as u8;
-        let ry = (y + (self.height / 2) as i8) as u8;
+        let rx = (x + (self.width / 2) as i16) as u16;
+        let ry = (y + (self.height / 2) as i16) as u16;
 
         // offset
         let offset = (ry * self.width + rx) as usize;

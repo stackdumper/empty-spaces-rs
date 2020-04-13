@@ -32,11 +32,11 @@ impl Clock {
     pub fn tick(&mut self) {
         let elapsed = self.instant.elapsed();
 
-        println!("{}", elapsed.as_secs_f32());
+        println!("{} - {}", self.target_dt, elapsed.as_secs_f32());
 
         if elapsed < self.duration {
-            self.dt = self.target_dt;
             thread::sleep(self.duration - elapsed);
+            self.dt = self.instant.elapsed().as_secs_f32();
         } else {
             self.dt = elapsed.as_secs_f32();
         }

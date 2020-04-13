@@ -1,20 +1,24 @@
 use crate::{components, resources};
+use rstar::AABB;
 use specs::prelude::*;
+use std::collections::HashSet;
 
 impl<'a> System<'a> for super::Render {
     type SystemData = (
+        Entities<'a>,
         ReadStorage<'a, components::Position>,
         ReadStorage<'a, components::Geometry>,
         ReadStorage<'a, components::Texture>,
         Read<'a, resources::Camera>,
         Read<'a, resources::Textures>,
+        Read<'a, resources::Tree>,
         Write<'a, resources::Signals>,
         Write<'a, resources::Keyboard>,
     );
 
     fn run(
         &mut self,
-        (position, geometry, texture, camera, textures, mut signals, mut keyboard): Self::SystemData,
+        (entities, position, geometry, texture, camera, textures, tree, mut signals, mut keyboard): Self::SystemData,
     ) {
         // exit if closed
         if !self.window.is_open() {
@@ -27,27 +31,45 @@ impl<'a> System<'a> for super::Render {
             self.buffer[i] = 0x000000
         }
 
-        // draw pixels
-        // todo: use quadtree to determine if entity is on the screen
-        // note: rstar https://crates.io/crates/rstar
-        for (pos, geom, tex) in (&position, &geometry, &texture).join() {
-            let rx = pos.x + camera.x + self.half_width as f32;
-            let ry = pos.y + camera.y + self.half_height as f32;
+        let ent = tree
+            .tree
+            .locate_in_envelope(&AABB::from_corners(
+                resources::TreeItem {
+                    0: None,
+                    1: -camera.x - self.half_width as f32,
+                    2: -camera.y - self.half_height as f32,
+                },
+                resources::TreeItem {
+                    0: None,
+                    1: -camera.x + self.half_width as f32,
+                    2: -camera.y + self.half_height as f32,
+                },
+            ))
+            .into_iter()
+            .map(|i| i.0.unwrap())
+            .collect::<HashSet<Entity>>();
 
-            // if self.contains(rx, ry) {
-            if self.contains(&rx, &ry, &geom) {
-                // if contains, draw texture color
-                let texture = textures.textures.get(&tex.0).unwrap();
+        let cx = camera.x + self.half_width as f32;
+        let cy = camera.y + self.half_height as f32;
 
-                // for each pixel in geometry
-                for oy in geom.min_y..geom.max_y + 1 {
-                    for ox in geom.min_x..geom.max_x + 1 {
-                        // offset
-                        let x = rx + ox as f32;
-                        let y = ry + oy as f32;
+        for (_, pos, geom, tex) in (&entities, &position, &geometry, &texture)
+            .join()
+            .filter(|(entity, _, __, ___)| ent.contains(entity))
+        {
+            let rx = pos.x + cx;
+            let ry = pos.y + cy;
 
-                        self.draw(x, y, texture.get(ox, oy))
-                    }
+            // if contains, draw texture color
+            let texture = textures.textures.get(&tex.0).unwrap();
+
+            // for each pixel in geometry
+            for oy in geom.min_y..geom.max_y + 1 {
+                for ox in geom.min_x..geom.max_x + 1 {
+                    // offset
+                    let x = rx + ox as f32;
+                    let y = ry + oy as f32;
+
+                    self.draw(x, y, texture.get(ox, oy))
                 }
             }
         }
