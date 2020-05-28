@@ -1,82 +1,157 @@
-use pg::{components, resources, systems};
+use beryllium::*;
+use pg::{components, create_dispatcher, resources};
 use specs::prelude::*;
 
 fn main() {
-    // create world
-    let mut world = World::new();
-
-    // register components
-    world.register::<components::Position>();
-    world.register::<components::Velocity>();
-    world.register::<components::Geometry>();
-    world.register::<components::Texture>();
-    world.register::<components::CameraFollow>();
-    world.register::<components::Speed>();
-
-    // insert resources
-    world.insert(resources::Clock::new(30));
-    world.insert(resources::Signals::default());
-    world.insert(resources::Keyboard::default());
-    world.insert(resources::Camera { x: 0.0, y: 0.0 });
-    world.insert(resources::Textures::new());
-    world.insert(resources::Tree::default());
-    world.insert(resources::Map::default());
-
-    world
-        .create_entity()
-        .with(components::Position { x: 0.0, y: 0.0 })
-        .with(components::Velocity { x: 0.0, y: 0.0 })
-        .with(components::Geometry::square(16, 16))
-        .with(components::Texture(5))
-        .with(components::CameraFollow)
-        .with(components::Speed { x: 30.0, y: 30.0 })
-        .build();
-
-    for x in 0..20 {
-        for y in 0..20 {
-            world
-                .create_entity()
-                .with(components::Position {
-                    x: (x * 32) as f32,
-                    y: (y * 32) as f32,
-                })
-                .with(components::Velocity { x: 0.0, y: 0.0 })
-                .with(components::Geometry::square(13, 13))
-                .with(components::Texture(6))
-                .build();
-        }
-    }
-
     // create dispatcher
-    let mut dispatcher = DispatcherBuilder::new()
-        .with(systems::Controls, "controls", &[])
-        .with(systems::Camera, "camera", &["controls"])
-        .with(systems::Position, "position", &[])
-        .with(systems::Tree, "tree", &["position"])
-        .with_thread_local(systems::Render::new("project-rts", 500, 400))
-        .build_async(world);
+    let mut dispatcher = create_dispatcher();
 
-    // // setup dispatcher
-    // dispatcher.setup();
+    // insert entities
+    dispatcher
+        .world_mut()
+        .create_entity()
+        .with(components::Position::new(0, 0))
+        .with(components::Velocity::new(0, 0))
+        .build();
 
     // run game loop
     loop {
         // run dispatcher
         dispatcher.dispatch();
+
+        // wait for dispatch to finish
         dispatcher.wait();
 
         // get world
         let world = dispatcher.world_mut();
 
+        // maintain world (removes entities)
         world.maintain();
 
         // update clock, pause game loop
         world.get_mut::<resources::Clock>().unwrap().tick();
 
-        // if closed, exit
-        let signals = world.get_mut::<resources::Signals>().unwrap();
-        if signals.close {
-            break;
+        // check exit
+        match world
+            .get_mut::<resources::SDL>()
+            .unwrap()
+            .sdl
+            .lock()
+            .unwrap()
+            .poll_events()
+            .and_then(Result::ok)
+        {
+            Some(Event::Quit(QuitEvent { .. })) => break,
+            _ => {}
         }
     }
 }
+
+// #![deny(clippy::all)]
+// #![forbid(unsafe_code)]
+// #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+
+// use beryllium::*;
+// use pixels::{wgpu::Surface, Pixels, SurfaceTexture};
+
+// const WIDTH: u32 = 320;
+// const HEIGHT: u32 = 240;
+// const BOX_SIZE: i16 = 64;
+
+// /// Representation of the application state. In this example, a box will bounce around the screen.
+// struct World {
+//     box_x: i16,
+//     box_y: i16,
+//     velocity_x: i16,
+//     velocity_y: i16,
+// }
+
+// fn main() -> Result<(), Box<dyn std::error::Error>> {
+//     // env_logger::init();
+//     let sdl = SDL::init(InitFlags::default())?;
+//     let window =
+//         sdl.create_raw_window("Hello Pixels", WindowPosition::Centered, WIDTH, HEIGHT, 0)?;
+
+//     let mut pixels = {
+//         let surface = Surface::create(&window);
+//         let surface_texture = SurfaceTexture::new(WIDTH, HEIGHT, surface);
+//         Pixels::new(WIDTH, HEIGHT, surface_texture)?
+//     };
+//     let mut world = World::new();
+
+//     'game_loop: loop {
+//         match sdl.poll_events().and_then(Result::ok) {
+//             // Close events
+//             Some(Event::Quit { .. }) => break 'game_loop,
+//             Some(Event::Keyboard(KeyboardEvent {
+//                 key: KeyInfo { keycode: key, .. },
+//                 ..
+//             })) if key == Keycode::ESCAPE => break 'game_loop,
+
+//             // Resize the window
+//             Some(Event::Window(WindowEvent {
+//                 event: WindowEventEnum::Resized { w, h },
+//                 ..
+//             })) => pixels.resize(w as u32, h as u32),
+
+//             _ => (),
+//         }
+
+//         // Update internal state
+//         world.update();
+
+//         // Draw the current frame
+//         world.draw(pixels.get_frame());
+//         pixels.render()?;
+//     }
+
+//     Ok(())
+// }
+
+// impl World {
+//     /// Create a new `World` instance that can draw a moving box.
+//     fn new() -> Self {
+//         Self {
+//             box_x: 24,
+//             box_y: 16,
+//             velocity_x: 1,
+//             velocity_y: 1,
+//         }
+//     }
+
+//     /// Update the `World` internal state; bounce the box around the screen.
+//     fn update(&mut self) {
+//         if self.box_x <= 0 || self.box_x + BOX_SIZE - 1 >= WIDTH as i16 {
+//             self.velocity_x *= -1;
+//         }
+//         if self.box_y <= 0 || self.box_y + BOX_SIZE - 1 >= HEIGHT as i16 {
+//             self.velocity_y *= -1;
+//         }
+
+//         self.box_x += self.velocity_x;
+//         self.box_y += self.velocity_y;
+//     }
+
+//     /// Draw the `World` state to the frame buffer.
+//     ///
+//     /// Assumes the default texture format: [`wgpu::TextureFormat::Rgba8UnormSrgb`]
+//     fn draw(&self, frame: &mut [u8]) {
+//         for (i, pixel) in frame.chunks_exact_mut(4).enumerate() {
+//             let x = (i % WIDTH as usize) as i16;
+//             let y = (i / WIDTH as usize) as i16;
+
+//             let inside_the_box = x >= self.box_x
+//                 && x < self.box_x + BOX_SIZE
+//                 && y >= self.box_y
+//                 && y < self.box_y + BOX_SIZE;
+
+//             let rgba = if inside_the_box {
+//                 [0x5e, 0x48, 0xe8, 0xff]
+//             } else {
+//                 [0x48, 0xb2, 0xe8, 0xff]
+//             };
+
+//             pixel.copy_from_slice(&rgba);
+//         }
+//     }
+// }

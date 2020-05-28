@@ -2,6 +2,7 @@ use std::ops::{AddAssign, Div};
 use std::thread;
 use std::time::{Duration, Instant};
 
+/// Clock is used to keep track of time in the game world
 pub struct Clock {
     pub dt: f32,
     pub target_dt: f32,
@@ -17,6 +18,7 @@ impl Default for Clock {
 }
 
 impl Clock {
+    /// create new Clock instance
     pub fn new(fps: u32) -> Self {
         let duration = Duration::from_secs(1).div(fps);
         let target_dt = duration.as_secs_f32();
@@ -29,6 +31,7 @@ impl Clock {
         }
     }
 
+    // update clock, pause thread to match desired fps
     pub fn tick(&mut self) {
         let elapsed = self.instant.elapsed();
 
