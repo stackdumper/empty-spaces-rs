@@ -3,8 +3,8 @@ use specs::prelude::*;
 /// represents entity velocity
 #[derive(Debug, Default)]
 pub struct Velocity {
-    pub px: i32,
-    pub py: i32,
+    pub x: f64,
+    pub y: f64,
 }
 
 impl Component for Velocity {
@@ -12,7 +12,7 @@ impl Component for Velocity {
 }
 
 impl Velocity {
-    pub fn new(px: i32, py: i32) -> Self {
-        Self { px, py }
+    pub fn new(x: f64, y: f64) -> Self {
+        Self { x, y }
     }
 }

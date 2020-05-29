@@ -1,5 +1,5 @@
 use crate::{components, resources};
-use image::{GenericImage, RgbaImage};
+use image::{GenericImage, GenericImageView, RgbaImage};
 use specs::prelude::*;
 
 pub struct Render;
@@ -20,7 +20,17 @@ impl<'a> System<'a> for Render {
         for (position, texture) in (&positions, &textures).join() {
             let texture = assets.textures.get(&texture.name).unwrap();
 
-            image.copy_from(texture, position.x, position.y).unwrap();
+            if position.x < 0.0
+                || position.x as u32 + texture.width() > sdl.width
+                || position.y < 0.0
+                || position.y as u32 + texture.height() > sdl.height
+            {
+                continue;
+            }
+
+            image
+                .copy_from(texture, position.x as u32, position.y as u32)
+                .unwrap();
         }
 
         let frame = pixels.get_frame();
