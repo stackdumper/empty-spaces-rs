@@ -1,82 +1,61 @@
-use pg::{components, resources, systems};
+use beryllium::*;
+use pg::{components, create_dispatcher, resources};
+use rand::{thread_rng, Rng};
 use specs::prelude::*;
 
 fn main() {
-    // create world
-    let mut world = World::new();
-
-    // register components
-    world.register::<components::Position>();
-    world.register::<components::Velocity>();
-    world.register::<components::Geometry>();
-    world.register::<components::Texture>();
-    world.register::<components::CameraFollow>();
-    world.register::<components::Speed>();
-
-    // insert resources
-    world.insert(resources::Clock::new(30));
-    world.insert(resources::Signals::default());
-    world.insert(resources::Keyboard::default());
-    world.insert(resources::Camera { x: 0.0, y: 0.0 });
-    world.insert(resources::Textures::new());
-    world.insert(resources::Tree::default());
-    world.insert(resources::Map::default());
-
-    world
-        .create_entity()
-        .with(components::Position { x: 0.0, y: 0.0 })
-        .with(components::Velocity { x: 0.0, y: 0.0 })
-        .with(components::Geometry::square(16, 16))
-        .with(components::Texture(5))
-        .with(components::CameraFollow)
-        .with(components::Speed { x: 30.0, y: 30.0 })
-        .build();
-
-    for x in 0..20 {
-        for y in 0..20 {
-            world
-                .create_entity()
-                .with(components::Position {
-                    x: (x * 32) as f32,
-                    y: (y * 32) as f32,
-                })
-                .with(components::Velocity { x: 0.0, y: 0.0 })
-                .with(components::Geometry::square(13, 13))
-                .with(components::Texture(6))
-                .build();
-        }
-    }
-
     // create dispatcher
-    let mut dispatcher = DispatcherBuilder::new()
-        .with(systems::Controls, "controls", &[])
-        .with(systems::Camera, "camera", &["controls"])
-        .with(systems::Position, "position", &[])
-        .with(systems::Tree, "tree", &["position"])
-        .with_thread_local(systems::Render::new("project-rts", 500, 400))
-        .build_async(world);
+    let mut dispatcher = create_dispatcher();
 
-    // // setup dispatcher
-    // dispatcher.setup();
+    // insert entities
+    let mut rng = thread_rng();
+    for _ in 0..100 {
+        dispatcher
+            .world_mut()
+            .create_entity()
+            .with(components::Position::new(
+                rng.gen_range(750.0, 850.0),
+                rng.gen_range(400.0, 500.0),
+            ))
+            .with(components::Velocity::new(
+                rng.gen_range(-5.0, 5.0),
+                rng.gen_range(-5.0, 5.0),
+            ))
+            .with(components::Texture::new(String::from(
+                "src/assets/asteroid.png",
+            )))
+            .build();
+    }
 
     // run game loop
     loop {
         // run dispatcher
         dispatcher.dispatch();
+
+        // wait for dispatch to finish
         dispatcher.wait();
 
         // get world
         let world = dispatcher.world_mut();
 
+        // maintain world (removes entities)
         world.maintain();
 
         // update clock, pause game loop
         world.get_mut::<resources::Clock>().unwrap().tick();
 
-        // if closed, exit
-        let signals = world.get_mut::<resources::Signals>().unwrap();
-        if signals.close {
-            break;
+        // check exit
+        match world
+            .get_mut::<resources::SDL>()
+            .unwrap()
+            .sdl
+            .lock()
+            .unwrap()
+            .poll_events()
+            .and_then(Result::ok)
+        {
+            Some(Event::Quit(QuitEvent { .. })) => break,
+            _ => {}
         }
     }
 }
