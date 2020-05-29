@@ -13,9 +13,11 @@ name = "pg"
 path = "src/bin.rs"
 
 [dependencies]
-pixels = { git = "https://github.com/parasyte/pixels", rev = "37b90fe6b409cea8b52088bfea537e9d5e27c626" }
+pixels = "0.0.4"
 specs = "0.16"
 beryllium = { version = "0.2.1", features = ["extern_crate_raw_window_handle"] }
+image = "0.23"
+rand = "0.7"
 
 [profile.dev]
 opt-level = 1

@@ -1,5 +1,6 @@
 use beryllium::*;
 use pg::{components, create_dispatcher, resources};
+use rand::{thread_rng, Rng};
 use specs::prelude::*;
 
 fn main() {
@@ -7,12 +8,24 @@ fn main() {
     let mut dispatcher = create_dispatcher();
 
     // insert entities
-    dispatcher
-        .world_mut()
-        .create_entity()
-        .with(components::Position::new(0, 0))
-        .with(components::Velocity::new(0, 0))
-        .build();
+    let mut rng = thread_rng();
+    for _ in 0..100 {
+        dispatcher
+            .world_mut()
+            .create_entity()
+            .with(components::Position::new(
+                rng.gen_range(750, 850),
+                rng.gen_range(400, 500),
+            ))
+            .with(components::Velocity::new(
+                rng.gen_range(-10, 10),
+                rng.gen_range(-10, 10),
+            ))
+            .with(components::Texture::new(String::from(
+                "src/assets/asteroid.png",
+            )))
+            .build();
+    }
 
     // run game loop
     loop {

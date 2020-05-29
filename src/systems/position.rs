@@ -13,8 +13,8 @@ impl<'a> System<'a> for Position {
     fn run(&mut self, (mut positions, velocities, map): Self::SystemData) {
         for (mut pos, vel) in (&mut positions, &velocities).join() {
             // add precise position
-            pos.px += vel.px;
-            pos.py += vel.py;
+            pos.px = (pos.px as i32 + vel.px) as u32;
+            pos.py = (pos.py as i32 + vel.py) as u32;
 
             // calcualate tile position
             pos.x = pos.px / 10;
